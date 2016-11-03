@@ -11,6 +11,7 @@ define("SUPERUSER", "directorycreator@example.com"); 		// A superuser login. Sho
 define("PASSWORD", "Strong-Password-Here");					// Password for the above account
 define("CLIENTID", "Example_API_User");						// API key client ID
 define("CLIENTSECRET", "ExampleKey123");					// API key secret key
+define("TERRITORY", "#####");						// Territory for the reseller domain - should be a 5 digit number
 
 define("DIRECTORYLOCATION", "/var/www/html/example/");		// Absolute path to folder where directories will be stored. INCLUDE TRAILING SLASH.
 
@@ -62,25 +63,50 @@ $token = $token['access_token'];					// Set our API token as $token
 
 
 ###################################################
-// Step 2: Retrieve list of domains
+// Step 2a: Retrieve list of domains
 ###################################################
+// Due to the access violation exploit discovered by Truvis Thornton, NetSap had to push out patch API 1227.1.2 
+// BUG: Domain can't be wildcard in subscriber. FIX: need to pull a domain list to loop through. 
+// REF: http://us4.campaign-archive2.com/?u=1f3c377bb61407bb704b4b153&id=dd99531ec8 -- POC: *TO BE RELEASED*
 
-// Find all domains with a "Company Contacts" user
-$query = array(
-    'object' => "subscriber",						// Find all domains that have a user that matches the details below
+$queryDomains = array(
+    'object' => "domain",			// Request for list of all domains
     'action' => "read",
-	'domain' => "*",
-	'first_name' => DIRECTORYFIRSTNAME,				// User first name = DIRECTORYFIRSTNAME This is the shared accounts where enterprise contacts are stored. See the README for more details.
-	'last_name' => DIRECTORYLASTNAME,				// User last name = DIRECTORYLASTNAME
+    'territory' => TERRITORY
 );
 
-$domains  = __doCurl("https://" . SERVER . "/ns-api/", CURLOPT_POST, "Authorization: Bearer " . $token, $query, null, $http_response);
+$domains2  = __doCurl("https://" . SERVER . "/ns-api/", CURLOPT_POST, "Authorization: Bearer " . $token, $queryDomains, null, $http_response);
 
-$domains = simplexml_load_string($domains);					// Load the XML response from the API
+$domains2 = simplexml_load_string($domains2);					// Load the XML response from the API
 
-foreach($domains->subscriber as $key => $value) {  			// Look for the "subscriber" field in the API response
-	if(isset($value->domain)){  							// Then find the "domain" field and see if it has a value, then:
-		$domainArray[] = "$value->domain";  				// Build an array with the domain names
+foreach($domains2->domain as $key2 => $value2) {  				// Look for the "domain" field in the API response
+	if(isset($value2->domain)){  							// If the "domain" field has a value then:
+		$domainArray2[] = "$value2->domain";  				// Build an array with the domains
+	}
+}
+
+###################################################
+// Step 2b: Retrieve list of domains
+###################################################
+foreach ($domainArray2 as $key => $domain) {	
+	
+	// Find all domains with a "Company Contacts" user
+	$query = array(
+		'object' => "subscriber",						// Find all domains that have a user that matches the details below
+		'action' => "read",
+		'domain' => htmlspecialchars($domain),
+		'first_name' => DIRECTORYFIRSTNAME,				// User first name = DIRECTORYFIRSTNAME This is the shared accounts where enterprise contacts are stored. See the README for more details.
+		'last_name' => DIRECTORYLASTNAME,				// User last name = DIRECTORYLASTNAME
+	);
+
+	$domains  = __doCurl("https://" . SERVER . "/ns-api/", CURLOPT_POST, "Authorization: Bearer " . $token, $query, null, $http_response);
+
+	$domains = simplexml_load_string($domains);					// Load the XML response from the API
+
+	foreach($domains->subscriber as $key => $value) {  			// Look for the "subscriber" field in the API response
+		if(isset($value->domain)){  							// Then find the "domain" field and see if it has a value, then:
+			$domainArray[] = "$value->domain";  				// Build an array with the domain names
+		}
 	}
 }
 
