@@ -11,7 +11,7 @@ define("SUPERUSER", "directorycreator@example.com"); 		// A superuser login. Sho
 define("PASSWORD", "Strong-Password-Here");					// Password for the above account
 define("CLIENTID", "Example_API_User");						// API key client ID
 define("CLIENTSECRET", "ExampleKey123");					// API key secret key
-define("TERRITORY", "20217");						// Territory for the reseller domain
+define("TERRITORY", "#####");						// Territory for the reseller domain - should be a 5 digit number
 
 define("DIRECTORYLOCATION", "/var/www/html/example/");		// Absolute path to folder where directories will be stored. INCLUDE TRAILING SLASH.
 
